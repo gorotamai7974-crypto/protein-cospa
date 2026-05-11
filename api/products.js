@@ -1,85 +1,67 @@
 // Vercel Serverless Function: 楽天市場API中継
-// 複数のエンドポイント・バージョンを試して、最初に成功したものを返す
-// 失敗時は全試行の結果を返してデバッグに使う
- 
+// 新APIは applicationId + accessKey の両方が必須
+
 export default async function handler(req, res) {
   const APP_ID = process.env.RAKUTEN_APP_ID;
+  const ACCESS_KEY = process.env.RAKUTEN_ACCESS_KEY;
   const AFFILIATE_ID = process.env.RAKUTEN_AFFILIATE_ID || '';
-  const ACCESS_KEY = process.env.RAKUTEN_ACCESS_KEY || '';
- 
+
   if (!APP_ID) {
     return res.status(500).json({
-      error: '環境変数 RAKUTEN_APP_ID が未設定です。Vercelダッシュボードで設定してください。'
+      error: '環境変数 RAKUTEN_APP_ID が未設定です。'
     });
   }
- 
+  if (!ACCESS_KEY) {
+    return res.status(500).json({
+      error: '環境変数 RAKUTEN_ACCESS_KEY が未設定です。Vercelダッシュボードで追加してください。'
+    });
+  }
+
   const keyword = req.query.keyword || 'プロテイン ホエイ';
- 
-  // 試す可能性のあるバージョン番号（新しい順）
-  const versions = ['20260401', '20240101', '20220601', '20170706'];
-  // 試すベースエンドポイント
-  const baseEndpoints = [
-    'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/',
-    'https://app.rakuten.co.jp/services/api/IchibaItem/Search/',
-  ];
- 
-  const buildUrl = (base, version) => {
-    const url = new URL(base + version);
-    url.searchParams.set('format', 'json');
-    url.searchParams.set('keyword', keyword);
-    url.searchParams.set('applicationId', APP_ID);
-    if (AFFILIATE_ID) url.searchParams.set('affiliateId', AFFILIATE_ID);
-    url.searchParams.set('hits', '30');
-    url.searchParams.set('sort', '+itemPrice');
-    return url.toString();
-  };
- 
-  const results = [];
- 
-  for (const base of baseEndpoints) {
-    for (const version of versions) {
-      const fullUrl = buildUrl(base, version);
+
+  const url = new URL('https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20220601');
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('keyword', keyword);
+  url.searchParams.set('applicationId', APP_ID);
+  url.searchParams.set('accessKey', ACCESS_KEY);
+  if (AFFILIATE_ID) url.searchParams.set('affiliateId', AFFILIATE_ID);
+  url.searchParams.set('hits', '30');
+  url.searchParams.set('sort', '+itemPrice');
+
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${ACCESS_KEY}`,
+        'User-Agent': 'ProteinCospa/1.0',
+      },
+    });
+    const text = await response.text();
+
+    if (response.ok) {
       try {
-        const headers = {
-          'Accept': 'application/json',
-          'User-Agent': 'ProteinCospa/1.0',
-        };
-        if (ACCESS_KEY) {
-          headers['Authorization'] = `Bearer ${ACCESS_KEY}`;
-        }
-        const response = await fetch(fullUrl, { headers });
-        const text = await response.text();
- 
-        if (response.ok) {
-          try {
-            const data = JSON.parse(text);
-            if (data.Items && Array.isArray(data.Items)) {
-              res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
-              res.setHeader('X-Used-Endpoint', base + version);
-              return res.status(200).json(data);
-            }
-          } catch (e) {
-            // パースエラー → 次へ
-          }
-        }
- 
-        results.push({
-          endpoint: base + version,
-          status: response.status,
-          body: text.slice(0, 200),
-        });
+        const data = JSON.parse(text);
+        // 5分間キャッシュ（楽天の負荷軽減＆応答速度UP）
+        res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+        return res.status(200).json(data);
       } catch (e) {
-        results.push({ endpoint: base + version, error: e.message });
+        return res.status(500).json({
+          error: 'JSON解析エラー',
+          detail: e.message,
+          body: text.slice(0, 1000),
+        });
       }
     }
+
+    return res.status(response.status).json({
+      error: '楽天APIがエラーを返しました',
+      status: response.status,
+      body: text.slice(0, 1000),
+    });
+  } catch (e) {
+    return res.status(500).json({
+      error: 'ネットワークエラー',
+      detail: e.message,
+    });
   }
- 
-  return res.status(502).json({
-    error: '全エンドポイント・バージョンで失敗',
-    detail: '楽天APIから商品データを取得できませんでした',
-    attempts: results,
-  });
 }
- 
-
-

@@ -28,12 +28,16 @@ export default async function handler(req, res) {
   url.searchParams.set('hits', '30');
   url.searchParams.set('sort', '+itemPrice');
 
+  // Refererヘッダ：楽天の「許可されたウェブサイト」に登録したドメインを指定
+  const SITE_URL = process.env.SITE_URL || 'https://protein-cospa.vercel.app/';
+
   try {
     const response = await fetch(url.toString(), {
       headers: {
         'Accept': 'application/json',
         'Authorization': `Bearer ${ACCESS_KEY}`,
         'User-Agent': 'ProteinCospa/1.0',
+        'Referer': SITE_URL,
       },
     });
     const text = await response.text();

@@ -1,0 +1,10 @@
+{
+  "name": "protein-cospa",
+  "version": "1.0.0",
+  "description": "プロテイン コスパ検索 - タンパク質1gあたりの単価で比較",
+  "private": true,
+  "engines": {
+    "node": "20.x"
+  },
+  "type": "module"
+}

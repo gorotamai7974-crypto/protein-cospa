@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>プロテイン コスパ検索（実データ版）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: #f7f8fa;
+    color: #1a1a1a;
+    line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    padding: 24px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .header-inner { max-width: 1100px; margin: 0 auto; }
+  h1 {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-mark {
+    background: white;
+    color: #ff6b35;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 900;
+  }
+  .tagline {
+    font-size: 13px;
+    opacity: 0.95;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.2);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    background: #4ade80;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+  .search-bar {
+    background: white;
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    margin-bottom: 16px;
+  }
+  .search-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #eee;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+  .search-input:focus { outline: none; border-color: #ff6b35; }
+  .filter-section {
+    background: white;
+    border-radius: 14px;
+    padding: 16px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    margin-bottom: 16px;
+  }
+  .filter-group { margin-bottom: 14px; }
+  .filter-group:last-child { margin-bottom: 0; }
+  .filter-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #666;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 7px 14px;
+    border: 1.5px solid #e5e5e5;
+    background: white;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: #555;
+  }
+  .chip:hover { border-color: #ff6b35; color: #ff6b35; }
+  .chip.active {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    color: white;
+  }
+  .sort-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .result-count {
+    font-size: 14px;
+    color: #666;
+    font-weight: 600;
+  }
+  .result-count strong { color: #ff6b35; font-size: 17px; }
+  .sort-select {
+    padding: 8px 14px;
+    border: 2px solid #e5e5e5;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    background: white;
+    cursor: pointer;
+  }
+  .results { display: flex; flex-direction: column; gap: 12px; }
+  .card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    display: grid;
+    grid-template-columns: 40px 90px 1fr auto;
+    gap: 14px;
+    align-items: start;
+    transition: transform 0.15s, box-shadow 0.15s;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  }
+  .rank {
+    font-size: 28px;
+    font-weight: 900;
+    color: #ccc;
+    text-align: center;
+    line-height: 1;
+    padding-top: 4px;
+  }
+  .rank.gold { color: #f4c542; }
+  .rank.silver { color: #b3b3b3; }
+  .rank.bronze { color: #c88a4a; }
+  .product-img {
+    width: 90px;
+    height: 90px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .product-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: white;
+  }
+  .product-img-fallback {
+    font-size: 32px;
+    color: #aaa;
+  }
+  .info { min-width: 0; }
+  .product-name {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: #1a1a1a;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+  }
+  .product-meta {
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 6px;
+  }
+  .badges {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: #f0f0f0;
+    color: #555;
+  }
+  .badge.wpi { background: #e8f0ff; color: #2563eb; }
+  .badge.wpc { background: #fff4e6; color: #c2410c; }
+  .badge.soy { background: #ecfdf5; color: #059669; }
+  .badge.casein { background: #f3e8ff; color: #7c3aed; }
+  .badge.sweetener-free { background: #ecfdf5; color: #047857; }
+  .badge.has-sweetener { background: #fef2f2; color: #b91c1c; }
+  .badge.made-jp { background: #fef3f2; color: #c0392b; font-weight: 800; }
+  .badge.made-overseas { background: #eff6ff; color: #1e40af; }
+  .badge.made-unknown { background: #f5f5f5; color: #999; }
+  .badge.estimated { background: #fef9c3; color: #854d0e; }
+  .rating-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  .stars { color: #fbbf24; letter-spacing: 1px; font-size: 13px; }
+  .rating-num { font-weight: 700; color: #555; }
+  .review-count { color: #999; font-size: 11px; }
+  .rank-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding-top: 8px;
+    border-top: 1px dashed #eaeaea;
+  }
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 8px;
+    background: #f5f5f7;
+    border: 1px solid #e8e8ea;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .rank-badge:hover {
+    background: #fff1e8;
+    border-color: #ffb088;
+    color: #ff6b35;
+    transform: translateY(-1px);
+  }
+  .rank-badge:hover .rank-num { color: #ff6b35; }
+  .rank-badge .rank-num { font-weight: 800; color: #333; }
+  .rank-badge.active {
+    background: #fff1e8;
+    border-color: #ff6b35;
+    color: #ff6b35;
+  }
+  .rank-badge.active .rank-num { color: #ff6b35; }
+  .rank-badge.top1 {
+    background: #fef9c3;
+    border-color: #f4c542;
+    color: #854d0e;
+  }
+  .rank-badge.top1 .rank-num { color: #854d0e; }
+  .rank-badge.active.top1 {
+    background: linear-gradient(135deg, #fff1e8, #fef9c3);
+    border-color: #ff6b35;
+    color: #92400e;
+  }
+  .price-block {
+    text-align: right;
+    min-width: 130px;
+  }
+  .pp-protein {
+    font-size: 22px;
+    font-weight: 900;
+    color: #ff6b35;
+    line-height: 1;
+  }
+  .pp-protein-label {
+    font-size: 11px;
+    color: #888;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .price-detail {
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: #888;
+    line-height: 1.5;
+  }
+  .price-detail strong { color: #333; font-size: 13px; }
+  .info-note {
+    background: #fff8e1;
+    border-left: 4px solid #f4c542;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #6b5b00;
+    margin-bottom: 16px;
+  }
+  .info-note strong { color: #4a3f00; }
+
+  /* ローディング/エラー */
+  .loading-state, .error-state {
+    text-align: center;
+    padding: 80px 20px;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f0f0f0;
+    border-top-color: #ff6b35;
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-state div, .error-state div { font-size: 14px; color: #666; }
+  .error-state button {
+    margin-top: 16px;
+    padding: 10px 24px;
+    background: #ff6b35;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  @media (max-width: 600px) {
+    .card {
+      grid-template-columns: 32px 70px 1fr;
+      gap: 10px;
+    }
+    .product-img { width: 70px; height: 70px; }
+    .price-block {
+      grid-column: 1 / -1;
+      text-align: left;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .price-detail { margin-top: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <h1>
+      <span class="logo-mark">P</span>プロテイン コスパ検索
+      <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+    </h1>
+    <div class="tagline">楽天市場の実データを取得 / タンパク質1gあたりの単価で本当のコスパが見える</div>
+  </div>
+</header>
+
+<main>
+
+  <div class="info-note">
+    <strong>💡 実データ版：</strong>
+    楽天市場のAPIから取得した、いま実際に売られているプロテイン商品です。商品をクリックすると楽天の商品ページが開きます。
+  </div>
+
+  <div id="loading" class="loading-state">
+    <div class="loading-spinner"></div>
+    <div>楽天市場からプロテイン商品を取得中…</div>
+  </div>
+
+  <div id="error" class="error-state" style="display:none;">
+    <div style="font-size: 32px; margin-bottom: 12px;">😢</div>
+    <div id="error-msg">データの取得に失敗しました</div>
+    <div id="error-detail" style="font-size: 12px; color: #999; margin-top: 8px;"></div>
+    <button onclick="loadData()">もう一度試す</button>
+  </div>
+
+  <div id="main-content" style="display:none;">
+
+    <div class="search-bar">
+      <input type="text" class="search-input" id="search" placeholder="🔍 商品名で絞り込む（例：マイプロ、チョコ、WPI）">
+    </div>
+
+    <div class="filter-section">
+      <div class="filter-group">
+        <div class="filter-label">種類</div>
+        <div class="chip-row" id="type-filters">
+          <div class="chip active" data-type="all">すべて</div>
+          <div class="chip" data-type="WPC">WPC</div>
+          <div class="chip" data-type="WPI">WPI</div>
+          <div class="chip" data-type="ソイ">ソイ</div>
+          <div class="chip" data-type="カゼイン">カゼイン</div>
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">フレーバー系統</div>
+        <div class="chip-row" id="flavor-filters">
+          <div class="chip active" data-flavor="all">すべて</div>
+          <div class="chip" data-flavor="チョコ">🍫 チョコ系</div>
+          <div class="chip" data-flavor="バニラ">🥛 バニラ系</div>
+          <div class="chip" data-flavor="フルーツ">🍓 フルーツ系</div>
+          <div class="chip" data-flavor="和風">🍵 和風</div>
+          <div class="chip" data-flavor="デザート">🍪 デザート系</div>
+          <div class="chip" data-flavor="ナチュラル">🌾 ナチュラル</div>
+        </div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">製造国</div>
+        <div class="chip-row" id="madein-filters">
+          <div class="chip active" data-madein="all">こだわらない</div>
+          <div class="chip" data-madein="国内">🇯🇵 国内製造のみ</div>
+          <div class="chip" data-madein="海外">🌏 海外製造のみ</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sort-bar">
+      <div class="result-count"><strong id="count">0</strong> 件の商品</div>
+      <select class="sort-select" id="sort">
+        <option value="gram-price">1kgあたり 安い順 ⭐</option>
+        <option value="protein-price">タンパク質1gあたり 安い順</option>
+        <option value="total-low">値段 安い順</option>
+        <option value="protein-pct">タンパク質含有率 高い順</option>
+        <option value="rating">★評価 高い順</option>
+      </select>
+    </div>
+
+    <div class="results" id="results"></div>
+
+  </div>
+
+</main>
+
+<script>
+// === 設定 ===
+// APIキーはVercelの環境変数に保管。フロントには出さない。
+const SEARCH_KEYWORD = 'プロテイン ホエイ';
+
+// === ブランドDB ===
+const BRAND_DB = {
+  'マイプロテイン': { proteinPct: 80, madeIn: '海外', short: 'MyProtein' },
+  'MYPROTEIN':     { proteinPct: 80, madeIn: '海外', short: 'MyProtein' },
+  'MyProtein':     { proteinPct: 80, madeIn: '海外', short: 'MyProtein' },
+  'マイプロ':      { proteinPct: 80, madeIn: '海外', short: 'MyProtein' },
+  'Impact':        { proteinPct: 80, madeIn: '海外', short: 'MyProtein' },
+  'ビーレジェンド': { proteinPct: 79, madeIn: '国内', short: 'be-LEGEND' },
+  'be-LEGEND':     { proteinPct: 79, madeIn: '国内', short: 'be-LEGEND' },
+  'エクスプロージョン': { proteinPct: 74, madeIn: '国内', short: 'X-PLOSION' },
+  'X-PLOSION':     { proteinPct: 74, madeIn: '国内', short: 'X-PLOSION' },
+  'XPLOSION':      { proteinPct: 74, madeIn: '国内', short: 'X-PLOSION' },
+  'ゴールドジム':  { proteinPct: 80, madeIn: '国内', short: "GOLD'S GYM" },
+  "GOLD'S GYM":    { proteinPct: 80, madeIn: '国内', short: "GOLD'S GYM" },
+  'ザバス':        { proteinPct: 71, madeIn: '国内', short: 'SAVAS' },
+  'SAVAS':         { proteinPct: 71, madeIn: '国内', short: 'SAVAS' },
+  'グロング':      { proteinPct: 75, madeIn: '国内', short: 'GronG' },
+  'GronG':         { proteinPct: 75, madeIn: '国内', short: 'GronG' },
+  'GRONG':         { proteinPct: 75, madeIn: '国内', short: 'GronG' },
+  'ULTORA':        { proteinPct: 76, madeIn: '国内', short: 'ULTORA' },
+  'ALPRON':        { proteinPct: 78, madeIn: '国内', short: 'ALPRON' },
+  'アルプロン':    { proteinPct: 78, madeIn: '国内', short: 'ALPRON' },
+  'ボディウィング': { proteinPct: 76, madeIn: '国内', short: 'BodyWing' },
+  'BodyWing':      { proteinPct: 76, madeIn: '国内', short: 'BodyWing' },
+  'DNS':           { proteinPct: 72, madeIn: '国内', short: 'DNS' },
+  'ファイン':      { proteinPct: 85, madeIn: '国内', short: 'FINE' },
+  'ハレオ':        { proteinPct: 75, madeIn: '国内', short: 'HALEO' },
+  'HALEO':         { proteinPct: 75, madeIn: '国内', short: 'HALEO' },
+  'ニチガ':        { proteinPct: 76, madeIn: '国内', short: 'NICHIGA' },
+  'NICHIGA':       { proteinPct: 76, madeIn: '国内', short: 'NICHIGA' },
+  'バルクス':      { proteinPct: 80, madeIn: '国内', short: 'VALX' },
+  'VALX':          { proteinPct: 80, madeIn: '国内', short: 'VALX' },
+  'チャンピオン':  { proteinPct: 80, madeIn: '海外', short: 'CHAMPION' },
+  'CHAMPION':      { proteinPct: 80, madeIn: '海外', short: 'CHAMPION' },
+  'マッスルファーム': { proteinPct: 80, madeIn: '海外', short: 'MusclePharm' },
+  'オプチマム':    { proteinPct: 80, madeIn: '海外', short: 'Optimum' },
+  'OPTIMUM':       { proteinPct: 80, madeIn: '海外', short: 'Optimum' },
+};
+
+// === タイトル解析関数 ===
+function extractWeight(title) {
+  // 「3kg×2袋」「500g×3」のような乗算パターン
+  const multi = /(\d+(?:\.\d+)?)\s*(kg|ｋｇ|キロ|g|ｇ|グラム)\s*[×x*✕✖]\s*(\d+)/i.exec(title);
+  if (multi) {
+    const unit = multi[2].toLowerCase();
+    const w = parseFloat(multi[1]);
+    const c = parseInt(multi[3]);
+    const grams = (unit === 'kg' || unit === 'ｋｇ' || unit === 'キロ') ? w * 1000 : w;
+    return grams * c;
+  }
+  // 通常の単発: 一番大きい数字+kg/gを採用
+  const matches = [...title.matchAll(/(\d+(?:\.\d+)?)\s*(kg|ｋｇ|キロ|g|ｇ|グラム)/gi)];
+  if (matches.length === 0) return null;
+  let maxGrams = 0;
+  for (const m of matches) {
+    const unit = m[2].toLowerCase();
+    const w = parseFloat(m[1]);
+    const grams = (unit === 'kg' || unit === 'ｋｇ' || unit === 'キロ') ? w * 1000 : w;
+    if (grams > maxGrams) maxGrams = grams;
+  }
+  return maxGrams > 100 ? maxGrams : null;
+}
+
+function detectBrand(title, shopName) {
+  const combined = (title || '') + ' ' + (shopName || '');
+  // 長い名前から先にマッチさせる
+  const brands = Object.keys(BRAND_DB).sort((a, b) => b.length - a.length);
+  for (const b of brands) {
+    if (combined.toLowerCase().includes(b.toLowerCase())) {
+      return b;
+    }
+  }
+  return null;
+}
+
+function detectType(title) {
+  if (/WPI|アイソレート|isolate/i.test(title)) return 'WPI';
+  if (/カゼイン|casein/i.test(title)) return 'カゼイン';
+  if (/ソイ|大豆|soy/i.test(title)) return 'ソイ';
+  return 'WPC';
+}
+
+const FLAVOR_RULES = [
+  { match: /ココア|cocoa/i,                                     cat: 'チョコ',     name: 'ココア' },
+  { match: /ダブルチョコ|ビターチョコ|ダークチョコ/i,            cat: 'チョコ',     name: 'ダークチョコ' },
+  { match: /ミルクチョコ/i,                                     cat: 'チョコ',     name: 'ミルクチョコ' },
+  { match: /ナチュラルチョコ/i,                                 cat: 'チョコ',     name: 'ナチュラルチョコ' },
+  { match: /ショコラ/i,                                         cat: 'チョコ',     name: 'ショコラ' },
+  { match: /チョコ|chocolate|cacao|カカオ/i,                     cat: 'チョコ',     name: 'チョコ' },
+  { match: /ストロベリー|strawberry|苺|いちご/i,                cat: 'フルーツ',   name: 'ストロベリー' },
+  { match: /バナナ|banana/i,                                    cat: 'フルーツ',   name: 'バナナ' },
+  { match: /マンゴー|mango/i,                                   cat: 'フルーツ',   name: 'マンゴー' },
+  { match: /ピーチ|peach|桃/i,                                  cat: 'フルーツ',   name: 'ピーチ' },
+  { match: /ヨーグルト|yogurt/i,                                cat: 'フルーツ',   name: 'ヨーグルト' },
+  { match: /ブルーベリー|blueberry/i,                           cat: 'フルーツ',   name: 'ブルーベリー' },
+  { match: /グレープ|ぶどう|grape/i,                            cat: 'フルーツ',   name: 'グレープ' },
+  { match: /レモン|lemon/i,                                     cat: 'フルーツ',   name: 'レモン' },
+  { match: /パイン|パイナップル|pineapple/i,                    cat: 'フルーツ',   name: 'パイン' },
+  { match: /メロン|melon/i,                                     cat: 'フルーツ',   name: 'メロン' },
+  { match: /オレンジ|orange/i,                                  cat: 'フルーツ',   name: 'オレンジ' },
+  { match: /抹茶|matcha/i,                                      cat: '和風',       name: '抹茶' },
+  { match: /きなこ|黄な粉|kinako/i,                             cat: '和風',       name: 'きなこ' },
+  { match: /ほうじ茶|hojicha/i,                                 cat: '和風',       name: 'ほうじ茶' },
+  { match: /黒蜜|和風/i,                                        cat: '和風',       name: '和風' },
+  { match: /バニラ|vanilla/i,                                   cat: 'バニラ',     name: 'バニラ' },
+  { match: /ミルクティー|milk tea/i,                            cat: 'デザート',   name: 'ミルクティー' },
+  { match: /クッキー|cookie/i,                                  cat: 'デザート',   name: 'クッキー&クリーム' },
+  { match: /キャラメル|caramel/i,                               cat: 'デザート',   name: 'キャラメル' },
+  { match: /メイプル|maple/i,                                   cat: 'デザート',   name: 'メイプル' },
+  { match: /コーヒー|coffee|モカ|mocha/i,                       cat: 'デザート',   name: 'コーヒー' },
+  { match: /ナチュラル|プレーン|無味|natural|plain|unflavor/i,  cat: 'ナチュラル', name: 'プレーン' },
+];
+
+function detectFlavor(title) {
+  for (const r of FLAVOR_RULES) {
+    if (r.match.test(title)) return { category: r.cat, name: r.name };
+  }
+  return { category: 'その他', name: '不明' };
+}
+
+function detectSweetenerFree(title) {
+  return /甘味料.{0,4}(不使用|なし|無添加)|人工甘味料.{0,4}(不使用|なし)|ナチュラル|プレーン|無味/i.test(title);
+}
+
+// === 楽天API呼び出し（Vercel上の中継APIを叩く・CORS問題なし） ===
+async function loadRakutenData() {
+  const url = '/api/products?keyword=' + encodeURIComponent(SEARCH_KEYWORD);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      const bodyText = await response.text().catch(() => '');
+      throw new Error(`サーバーエラー HTTP ${response.status}: ${bodyText.slice(0, 200)}`);
+    }
+    const data = await response.json();
+    return data;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function getLargeImageUrl(url) {
+  if (!url) return null;
+  // 楽天画像URLのサイズ指定を大きくする
+  return url.replace(/_ex=\d+x\d+/, '_ex=300x300');
+}
+
+function convertItem(rakutenItem) {
+  const item = rakutenItem.Item || rakutenItem;
+  const title = item.itemName || '';
+  const weight = extractWeight(title);
+  if (!weight || weight < 100) return null;
+
+  const brand = detectBrand(title, item.shopName);
+  const brandInfo = brand ? BRAND_DB[brand] : { proteinPct: 75, madeIn: '不明', short: null };
+  const flavor = detectFlavor(title);
+
+  let imageUrl = null;
+  if (item.mediumImageUrls && item.mediumImageUrls.length > 0) {
+    const raw = item.mediumImageUrls[0];
+    imageUrl = getLargeImageUrl(typeof raw === 'string' ? raw : raw.imageUrl);
+  } else if (item.smallImageUrls && item.smallImageUrls.length > 0) {
+    const raw = item.smallImageUrls[0];
+    imageUrl = getLargeImageUrl(typeof raw === 'string' ? raw : raw.imageUrl);
+  }
+
+  return {
+    name: title.replace(/【.+?】/g, '').replace(/\[.+?\]/g, '').replace(/\s+/g, ' ').trim(),
+    brand: brand || '',
+    brandShort: brandInfo.short || (brand || item.shopName || ''),
+    shopName: item.shopName || '',
+    weight: weight,
+    price: parseInt(item.itemPrice) || 0,
+    type: detectType(title),
+    proteinPct: brandInfo.proteinPct,
+    proteinEstimated: !brand,
+    flavorCategory: flavor.category,
+    flavorName: flavor.name,
+    sweetenerFree: detectSweetenerFree(title),
+    madeIn: brandInfo.madeIn,
+    rating: parseFloat(item.reviewAverage) || 0,
+    reviews: parseInt(item.reviewCount) || 0,
+    imageUrl: imageUrl,
+    itemUrl: item.itemUrl,
+  };
+}
+
+// === 状態 ===
+let products = [];
+let activeType = "all";
+let activeFlavor = "all";
+let activeMadeIn = "all";
+let searchText = "";
+let sortMode = "gram-price";
+
+// === ヘルパー ===
+function computeRanks(list, key, ascending = true) {
+  const sorted = [...list].sort((a, b) => ascending ? a[key] - b[key] : b[key] - a[key]);
+  const rankMap = new Map();
+  sorted.forEach((p, i) => rankMap.set(p, i + 1));
+  return rankMap;
+}
+
+function renderStars(rating) {
+  let stars = "";
+  for (let i = 0; i < 5; i++) {
+    stars += i < Math.round(rating) ? "★" : "☆";
+  }
+  return stars;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// === レンダリング ===
+function render() {
+  let filtered = products.filter(p => {
+    if (activeType !== "all" && p.type !== activeType) return false;
+    if (activeFlavor !== "all" && p.flavorCategory !== activeFlavor) return false;
+    if (activeMadeIn !== "all" && p.madeIn !== activeMadeIn) return false;
+    if (searchText) {
+      const q = searchText.toLowerCase();
+      if (!p.name.toLowerCase().includes(q) && !p.brand.toLowerCase().includes(q) && !p.shopName.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const rankProteinPrice = computeRanks(filtered, "pricePerProtein", true);
+  const rankGramPrice = computeRanks(filtered, "pricePerGram", true);
+  const rankTotalLow = computeRanks(filtered, "price", true);
+  const rankProteinPct = computeRanks(filtered, "proteinPct", false);
+  const rankRating = computeRanks(filtered, "rating", false);
+
+  filtered.sort((a, b) => {
+    switch(sortMode) {
+      case "protein-price": return a.pricePerProtein - b.pricePerProtein;
+      case "gram-price":    return a.pricePerGram - b.pricePerGram;
+      case "total-low":     return a.price - b.price;
+      case "protein-pct":   return b.proteinPct - a.proteinPct;
+      case "rating":        return b.rating - a.rating;
+    }
+  });
+
+  document.getElementById("count").textContent = filtered.length;
+
+  const results = document.getElementById("results");
+  if (filtered.length === 0) {
+    results.innerHTML = '<div style="text-align:center; padding:60px 20px; color:#888;">該当する商品がありません</div>';
+    return;
+  }
+
+  const activeRankKey = sortMode === "protein-price" ? "proteinPrice"
+                      : sortMode === "gram-price" ? "gramPrice"
+                      : sortMode === "total-low" ? "totalLow"
+                      : sortMode === "protein-pct" ? "proteinPct"
+                      : sortMode === "rating" ? "rating" : null;
+
+  results.innerHTML = filtered.map((p, i) => {
+    const rankClass = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
+    const typeClass = p.type === "WPI" ? "wpi" : p.type === "WPC" ? "wpc" : p.type === "ソイ" ? "soy" : "casein";
+
+    const sweetenerBadge = p.sweetenerFree
+      ? '<span class="badge sweetener-free">🌿 甘味料なし</span>'
+      : '<span class="badge has-sweetener">甘味料あり</span>';
+    const madeInBadge = p.madeIn === "国内" ? '<span class="badge made-jp">🇯🇵 国内製造</span>'
+                      : p.madeIn === "海外" ? '<span class="badge made-overseas">🌏 海外製造</span>'
+                      : '<span class="badge made-unknown">製造国不明</span>';
+    const proteinBadge = p.proteinEstimated
+      ? `<span class="badge estimated">タンパク質 約${p.proteinPct}%（推定）</span>`
+      : `<span class="badge">タンパク質 ${p.proteinPct}%</span>`;
+
+    const imgHtml = p.imageUrl
+      ? `<img src="${escapeHtml(p.imageUrl)}" alt="" onerror="this.style.display='none';this.parentElement.innerHTML+='<div class=&quot;product-img-fallback&quot;>🥤</div>'"/>`
+      : `<div class="product-img-fallback">🥤</div>`;
+
+    const ranks = [
+      { key: "gramPrice",    sortValue: "gram-price",    label: "1kgあたり",     icon: "⚖️", rank: rankGramPrice.get(p) },
+      { key: "proteinPrice", sortValue: "protein-price", label: "タンパク質単価", icon: "💪", rank: rankProteinPrice.get(p) },
+      { key: "totalLow",     sortValue: "total-low",     label: "値段",           icon: "💴", rank: rankTotalLow.get(p) },
+      { key: "proteinPct",   sortValue: "protein-pct",   label: "含有率",         icon: "🧬", rank: rankProteinPct.get(p) },
+      { key: "rating",       sortValue: "rating",        label: "評価",           icon: "⭐", rank: rankRating.get(p) },
+    ];
+    const rankBadgesHtml = ranks.map(r => {
+      const isActive = r.key === activeRankKey;
+      const isTop1 = r.rank === 1;
+      const cls = ["rank-badge", isActive ? "active" : "", isTop1 ? "top1" : ""].filter(Boolean).join(" ");
+      return `<span class="${cls}" data-sort="${r.sortValue}" title="クリックでこの順位に並び替え"><span class="rank-icon">${r.icon}</span>${r.label} <span class="rank-num">${r.rank}位</span></span>`;
+    }).join("");
+
+    return `
+      <a class="card" href="${escapeHtml(p.itemUrl)}" target="_blank" rel="noopener">
+        <div class="rank ${rankClass}">${i + 1}</div>
+        <div class="product-img">${imgHtml}</div>
+        <div class="info">
+          <div class="product-name">${escapeHtml(p.name)}</div>
+          <div class="product-meta">${escapeHtml(p.brandShort || p.shopName)} / ${p.weight >= 1000 ? (p.weight/1000).toFixed(p.weight%1000?1:0)+'kg' : p.weight+'g'}</div>
+          <div class="rating-row">
+            <span class="stars">${renderStars(p.rating)}</span>
+            <span class="rating-num">${p.rating.toFixed(1)}</span>
+            <span class="review-count">(${p.reviews.toLocaleString()}件)</span>
+          </div>
+          <div class="badges">
+            <span class="badge ${typeClass}">${p.type}</span>
+            ${proteinBadge}
+            <span class="badge">${escapeHtml(p.flavorName)}</span>
+            ${madeInBadge}
+            ${sweetenerBadge}
+          </div>
+          <div class="rank-badges">${rankBadgesHtml}</div>
+        </div>
+        <div class="price-block">
+          <div>
+            <div class="pp-protein">¥${Math.round(p.pricePerKg).toLocaleString()}</div>
+            <div class="pp-protein-label">1kgあたり</div>
+          </div>
+          <div class="price-detail">
+            値段 <strong>¥${p.price.toLocaleString()}</strong><br>
+            タンパク質1gあたり ¥${p.pricePerProtein.toFixed(2)}<br>
+            タンパク質量 ${p.proteinGram}g
+          </div>
+        </div>
+      </a>
+    `;
+  }).join("");
+}
+
+// === データ読込 ===
+async function loadData() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('error').style.display = 'none';
+  document.getElementById('main-content').style.display = 'none';
+
+  try {
+    const data = await loadRakutenData();
+    if (data.error) {
+      throw new Error(`楽天API: ${data.error_description || data.error}`);
+    }
+    if (!data.Items || !Array.isArray(data.Items)) {
+      throw new Error('予期しないデータ形式');
+    }
+
+    products = data.Items.map(convertItem).filter(p => p !== null);
+
+    products.forEach(p => {
+      p.proteinGram = Math.round(p.weight * p.proteinPct / 100);
+      p.pricePerGram = p.price / p.weight;
+      p.pricePerKg = p.price / (p.weight / 1000);
+      p.pricePerProtein = p.price / p.proteinGram;
+    });
+
+    if (products.length === 0) {
+      throw new Error('内容量を解析できる商品が見つかりませんでした');
+    }
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('main-content').style.display = 'block';
+    render();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error-detail').textContent = e.message;
+  }
+}
+
+// === イベント ===
+document.getElementById("search").addEventListener("input", e => {
+  searchText = e.target.value;
+  render();
+});
+document.querySelectorAll("#type-filters .chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    document.querySelectorAll("#type-filters .chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    activeType = chip.dataset.type;
+    render();
+  });
+});
+document.querySelectorAll("#flavor-filters .chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    document.querySelectorAll("#flavor-filters .chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    activeFlavor = chip.dataset.flavor;
+    render();
+  });
+});
+document.querySelectorAll("#madein-filters .chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    document.querySelectorAll("#madein-filters .chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    activeMadeIn = chip.dataset.madein;
+    render();
+  });
+});
+document.getElementById("sort").addEventListener("change", e => {
+  sortMode = e.target.value;
+  render();
+});
+document.getElementById("results").addEventListener("click", e => {
+  const badge = e.target.closest(".rank-badge");
+  if (!badge) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const newSort = badge.dataset.sort;
+  if (!newSort) return;
+  sortMode = newSort;
+  document.getElementById("sort").value = newSort;
+  render();
+  window.scrollTo({ top: document.querySelector(".sort-bar").offsetTop - 20, behavior: "smooth" });
+});
+
+// 初回ロード
+loadData();
+</script>
+</body>
+</html>

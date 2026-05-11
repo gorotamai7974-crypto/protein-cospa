@@ -55,8 +55,14 @@ export default async function handler(req, res) {
     const result = await httpsGet(apiUrl.toString(), {
       'Accept': 'application/json',
       'Authorization': `Bearer ${ACCESS_KEY}`,
-      'User-Agent': 'ProteinCospa/1.0',
+      // ブラウザらしいUser-Agentで送る（一部APIはbot対策で弾くため）
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      // Refererヘッダ（標準綴り：R 1つ）
       'Referer': SITE_URL,
+      // Referrerヘッダ（楽天の内部エラー名がREFERRERだったので、こっちの綴りも試す）
+      'Referrer': SITE_URL,
+      // Originヘッダも一応送る
+      'Origin': SITE_URL.replace(/\/$/, ''),
     });
 
     if (result.status >= 200 && result.status < 300) {
